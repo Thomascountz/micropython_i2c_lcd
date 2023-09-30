@@ -31,12 +31,12 @@ def main_test():
         print("Wait for a while")
         utime.sleep(2)
 
-        print("Test moving the display content to the right and then to the left")
+        print("Test moving the display content to the left and then to the right")
         lcd.scroll_content_off_screen("left", 0.2)
         lcd.scroll_content_off_screen("right", 0.2)
 
         print("Test blinking the cursor")
-        hd44780.set_cursor(0, 0)
+        lcd.reset_cursor(0)
         lcd.cursor_on()
         lcd.blink_on()
         utime.sleep(2)

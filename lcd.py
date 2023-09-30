@@ -35,6 +35,14 @@ class LCD:
         """
         self.hd44780.clear()
 
+    def reset_cursor(self, line: int = 0):
+        """
+        Move the cursor to the home position.
+
+        :param line: The line number (0-based).
+        """
+        self.hd44780.set_cursor(line, 0)
+
     def write_line(self, text: str, line: int = 0):
         """
         Write a string of text to a specific line on the LCD.
@@ -46,7 +54,7 @@ class LCD:
         :param text: The text to write.
         :param line: The line number (0-based).
         """
-        self.hd44780.set_cursor(line, 0)
+        self.reset_cursor(line)
         self.hd44780.write_string(text)
 
     def write_lines(self, text: str):
@@ -77,10 +85,10 @@ class LCD:
 
     def marquee_text(self, text: str, line: int = 0, delay: float = 0.2):
         """
-        Display a line of text as a scrolling marquee on the LCD, using the auto-scroll feature.
+        Display a line of text as a scrolling marquee on the LCD.
 
         The text will appear from the right edge of the display and disappear at the left edge. The text will be
-        scrolled from right to left automatically by the LCD's built-in auto-scroll feature. After the text has
+        scrolled from right to left by manually updating the visible portion of the text. After the text has
         completely disappeared, it will start again from the right.
 
         :param text: The text to display.
@@ -90,17 +98,11 @@ class LCD:
         # Pad the text with spaces on both sides equal to the width of the display
         text = " " * self.hd44780.num_columns + text + " " * self.hd44780.num_columns
 
-        # Enable auto scroll
-        self.hd44780.auto_scroll_on()
-
-        # Write the entire text string to the display
-        self.hd44780.set_cursor(line, 0)
-        for char in text:
-            self.hd44780.write_char(char)
+        # Write the visible portion of the text string to the display and update it
+        for i in range(len(text) - self.hd44780.num_columns + 1):
+            self.reset_cursor(line)
+            self.hd44780.write_string(text[i : i + self.hd44780.num_columns])
             utime.sleep(delay)
-
-        # Disable auto scroll
-        self.hd44780.auto_scroll_off()
 
     def scroll_content_off_screen(self, direction: str = "right", delay: float = 0.2):
         """
