@@ -1,5 +1,11 @@
 # HD44780 LCD Controller Interface with MicroPython
 
+
+
+https://github.com/Thomascountz/micropython_i2c_lcd/assets/19786848/07470ccc-1ee1-467d-855a-d67cb7de6779
+
+
+
 ## Description
 
 This library provides a programmatic interface for controlling HD44780-based LCD displays using a PCF8574 I/O expander in a MicroPython environment. The library is designed to offer convenient, high-level functions for LCD control while allowing access to underlying GPIO operations on PCF8574 when necessary.
