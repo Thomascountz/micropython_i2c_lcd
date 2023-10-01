@@ -153,6 +153,22 @@ class HD44780:
     def _write_command(self, cmd: int):
         """
         Write a command to the LCD.
+
+        For 4-bit interface data, only four bus lines (DB4 to DB7) are used for transfer.
+        Bus lines DB0 to DB3 are disabled. The data transfer between the HD44780 and the
+        MPU is completed after the 4-bit data has been transferred twice. As for the order
+        of data transfer, the four high order bits (for 8-bit operation, DB4 to DB7) are
+        transferred before the four low order bits (for 8-bit operation, DB0 to DB3). The
+        busy flag must be checked (one instruction) after the 4-bit data has been
+        transferred twice. Two more 4-bit operations then transfer the busy flag and
+        address counter data.
+
+        The Register Select (RS) pin selects between data and instruction registers. If
+        RS = 0, the instruction register is selected, allowing the user to send a command
+        such as Clear Display, Return Cursor to Home, etc. If RS = 1, the data register
+        is selected, allowing the user to send data to be displayed on the LCD.
+
+        :param cmd: The command to write.
         """
         # Prepare high order bits and write them
         byte = (self.backlight << self.BACKLIGHT_SHIFT) | (
@@ -173,6 +189,8 @@ class HD44780:
     def write_char(self, char: str):
         """
         Write a character to the LCD at the current cursor position.
+
+        :param char: The character to write.
         """
         self._write_data(ord(char))
 
@@ -195,6 +213,22 @@ class HD44780:
     def _write_data(self, data: int):
         """
         Write data to the LCD.
+
+        For 4-bit interface data, only four bus lines (DB4 to DB7) are used for transfer.
+        Bus lines DB0 to DB3 are disabled. The data transfer between the HD44780 and the
+        MPU is completed after the 4-bit data has been transferred twice. As for the order
+        of data transfer, the four high order bits (for 8-bit operation, DB4 to DB7) are
+        transferred before the four low order bits (for 8-bit operation, DB0 to DB3). The
+        busy flag must be checked (one instruction) after the 4-bit data has been
+        transferred twice. Two more 4-bit operations then transfer the busy flag and
+        address counter data.
+
+        The Register Select (RS) pin selects between data and instruction registers. If
+        RS = 0, the instruction register is selected, allowing the user to send a command
+        such as Clear Display, Return Cursor to Home, etc. If RS = 1, the data register
+        is selected, allowing the user to send data to be displayed on the LCD.
+
+        :param data: The data to write.
         """
         # Prepare high order bits and write them
         byte = (
@@ -228,6 +262,9 @@ class HD44780:
     def _update_cursor(self, cursor_x: int, cursor_y: int):
         """
         Update the cursor position on the LCD.
+
+        :param cursor_x: The column number (0-based).
+        :param cursor_y: The line number (0-based).
         """
         addr = cursor_x & 0x3F
         if cursor_y & 1:
