@@ -10,13 +10,13 @@ def main_test():
     i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000)
 
     print("Create a PCF8574 object")
-    pcf = PCF8574(i2c)
+    pcf8574 = PCF8574(i2c)
 
     print("Create an HD44780 object")
-    hd44780 = HD44780(pcf, num_lines=2, num_columns=16)
+    hd44780 = HD44780(pcf8574, num_lines=2, num_columns=16)
 
     print("Create an LCD object")
-    lcd = LCD(hd44780)
+    lcd = LCD(hd44780, pcf8574)
 
     while True:
         print("Turn on backlight")

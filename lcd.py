@@ -1,4 +1,5 @@
 from hd44780 import HD44780
+from backlight_driver import BacklightDriver
 import utime
 
 
@@ -18,8 +19,9 @@ class LCD:
     :param hd44780: An instance of the `HD44780` class.
     """
 
-    def __init__(self, hd44780: HD44780):
+    def __init__(self, hd44780: HD44780, backlight_driver: BacklightDriver):
         self.hd44780 = hd44780
+        self.backlight_driver = backlight_driver
 
     def get_hd44780(self):
         """
@@ -158,10 +160,10 @@ class LCD:
         """
         Turn on the LCD backlight.
         """
-        self.hd44780.backlight_on()
+        self.backlight_driver.backlight_on()
 
     def backlight_off(self):
         """
         Turn off the LCD backlight.
         """
-        self.hd44780.backlight_off()
+        self.backlight_driver.backlight_off()
