@@ -1,24 +1,26 @@
 # HD44780 LCD Controller Interface with MicroPython
 
-
-
 https://github.com/Thomascountz/micropython_i2c_lcd/assets/19786848/07470ccc-1ee1-467d-855a-d67cb7de6779
 
+This library provides an interface for controlling HD44780-based LCD displays using a PCF8574 I/O expander (often sold as a single module) with a MicroPython-compatible microcontroller. The library is designed to offer high-level functions for LCD control while allowing access to underlying GPIO operations on the PCF8574 when necessary.
 
+## Overview
 
-## Description
+The library is structured around several classes, each serving a specific role:
 
-This library provides a programmatic interface for controlling HD44780-based LCD displays using a PCF8574 I/O expander in a MicroPython environment. The library is designed to offer convenient, high-level functions for LCD control while allowing access to underlying GPIO operations on PCF8574 when necessary.
+1. `BacklightDriver`: An abstract base class for controlling the backlight of an LCD display.
 
-## Classes
+2. `HD44780`: A class for interacting with HD44780 LCD drivers through a PCF8574 I/O expander. Provides methods for writing characters and strings to the LCD, clearing the display, and controlling the display properties.
 
-The library is built around three primary classes:
+3. `HD447804BitDriver`: An abstract base class for controlling the HD44780 LCD controller through a 4-bit data bus.
 
-1. `LCD`: This class creates a more user-friendly API for controlling HD44780-based LCD displays. It wraps the `HD44780` class and provides utilities for operations like writing to specific LCD lines or creating scrolling texts.
+4. `HD447804BitPayload`: A class representing data to be written to the HD44780 LCD controller.
 
-2. `HD44780`: Interfaces directly with the HD44780 LCD controller via PCF8574 I/O expander. Offers methods for core operations like writing characters and strings, clearing display, and controlling display properties.
+5. `LCD`: A high-level API for controlling HD44780-based LCD displays. This class provides methods to write text to the LCD, control the cursor and display properties, and clear the display.
 
-3. `PCF8574`: Facilitates interaction with the PCF8574 I/O expander using I2C protocol. It provides functions for reading from and writing to GPIO pins of the PCF8574.
+6. `PCF8574`: A class for controlling the HD44780 LCD controller through a PCF8574 I/O expander. Implements the HD447804BitController and BacklightDriver interfaces, providing methods for writing 4-bit payloads to the HD44780 LCD controller via the PCF8574, and controlling the LCD's backlight.
+
+7. `test_main`: Contains a function for testing the library's functionality.
 
 ## Usage
 
@@ -31,16 +33,16 @@ from hd44780 import HD44780
 from lcd import LCD
 ```
 
-Initialize the LCD:
+Then, initialize the LCD:
 
 ```python
 i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000)
 pcf = PCF8574(i2c)
 hd44780 = HD44780(pcf, num_lines=2, num_columns=16)
-lcd = LCD(hd44780)
+lcd = LCD(hd44780, pcf)
 ```
 
-From here, you can use the `lcd` object to control the LCD. For instance, to write a line of text to the display:
+Now you can use the `lcd` object to control the LCD. For instance, to write a line of text to the display:
 
 ```python
 lcd.write_line("Hello, world!", 0)
@@ -52,7 +54,7 @@ To create a scrolling text:
 lcd.marquee_text("Hello...", 1, 0.2)
 ```
 
-And to control the cursor and display:
+To control the cursor and display:
 
 ```python
 lcd.cursor_on()
@@ -61,3 +63,15 @@ utime.sleep(2)
 lcd.cursor_off()
 lcd.blink_off()
 ```
+
+And to control the backlight:
+
+```python
+lcd.backlight_on()
+utime.sleep(2)
+lcd.backlight_off()
+```
+
+## Testing
+
+Run the `main_test` function in `test_main.py` to verify the library's functionality. This function will run a series of tests to demonstrate the capabilities of the library.
