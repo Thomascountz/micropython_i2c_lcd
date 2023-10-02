@@ -1,10 +1,11 @@
 import utime
-from pcf8574 import PCF8574
+from hd44780_4bit_driver import HD447804BitDriver
+from hd44780_4bit_payload import HD447804BitPayload
 
 
 class HD44780:
     """
-    A class for interacting with HD44780 LCD controllers through a PCF8574 I/O expander.
+    A class for interacting with HD44780 LCD drivers through a PCF8574 I/O expander.
 
     This class provides methods for writing characters and strings to the LCD,
     clearing the display, and controlling the display properties.
@@ -21,7 +22,7 @@ class HD44780:
     :param num_columns: The number of columns on the LCD.
     """
 
-    # HD44780 LCD controller command set
+    # HD44780 LCD control command set
     LCD_CLR = 0x01  # DB0: clear display
     LCD_HOME = 0x02  # DB1: return to home position
     LCD_ENTRY_MODE = 0x04  # DB2: set entry mode
@@ -49,20 +50,12 @@ class HD44780:
     LCD_2_LINE = 0x08  # DB3: two line display
     LCD_5x10_DOTS = 0x04  # DB2: 5x10 dot character font
 
-    # PCF8574 pin definitions
-    PIN_RS = 0x01  # P0 - Register Select
-    PIN_RW = 0x02  # P1 - Read/Write
-    PIN_ENABLE = 0x04  # P2 - Enable bit
-    BACKLIGHT_SHIFT = 3  # P3 - Backlight control
-    DATA_SHIFT = 4  # P4-P7 - Data lines
-
-    def __init__(self, pcf: PCF8574, num_lines: int, num_columns: int):
-        self.pcf = pcf
+    def __init__(self, driver: HD447804BitDriver, num_lines: int, num_columns: int):
+        self.driver = driver
         self.num_lines = min(num_lines, 4)
         self.num_columns = min(num_columns, 40)
         self.display_control = self.LCD_DISPLAY_CTRL | self.LCD_ON_DISPLAY
         self.entry_mode_set = self.LCD_ENTRY_MODE | self.LCD_ENTRY_INC
-        self.backlight = 0
 
         self._initialize()
 
@@ -70,7 +63,7 @@ class HD44780:
         """
         Initialize the LCD in 4-bit mode and clear the display.
 
-        This method performs the initialization sequence for the HD44780 controller
+        This method performs the initialization sequence for the HD44780 driver
         in 4-bit mode according to the datasheet. The sequence involves switching
         to 8-bit mode first, repeating the 8-bit function set command three times
         (the first two with a delay), then switching to 4-bit mode. After the
@@ -138,21 +131,18 @@ class HD44780:
 
     def _write_nibble(self, nibble: int):
         """
-        Write a 4-bit nibble to the LCD through the PCF8574.
-        """
-        self.pcf.write((nibble & 0x0F) << self.DATA_SHIFT | self.PIN_ENABLE)
-        self.pcf.write((nibble & 0x0F) << self.DATA_SHIFT)
+        Write a 4-bit nibble to the LCD.
 
-    def clear(self):
+        param nibble: The 4-bit nibble to write.
         """
-        Clear the LCD display and move the cursor to the top left corner.
-        """
-        self._write_command(self.LCD_CLR)
-        self._write_command(self.LCD_HOME)
+        payload = HD447804BitPayload(e=1, rs=0, rw=0, data=nibble)
+        self.driver.write(payload)
+        payload = HD447804BitPayload(e=0, rs=0, rw=0, data=nibble)
+        self.driver.write(payload)
 
-    def _write_command(self, cmd: int):
+    def _write_byte(self, byte: int, mode: str = "data"):
         """
-        Write a command to the LCD.
+        Write a byte to the LCD.
 
         For 4-bit interface data, only four bus lines (DB4 to DB7) are used for transfer.
         Bus lines DB0 to DB3 are disabled. The data transfer between the HD44780 and the
@@ -168,23 +158,54 @@ class HD44780:
         such as Clear Display, Return Cursor to Home, etc. If RS = 1, the data register
         is selected, allowing the user to send data to be displayed on the LCD.
 
-        :param cmd: The command to write.
+        :param byte: The byte to write.
+        :param mode: The mode to write the byte in. Must be "data" or "command".
         """
+        if mode == "data":
+            rs = 1
+        elif mode == "command":
+            rs = 0
+        else:
+            raise ValueError("mode must be 'data' or 'command'")
+
         # Prepare high order bits and write them
-        byte = (self.backlight << self.BACKLIGHT_SHIFT) | (
-            ((cmd >> 4) & 0x0F) << self.DATA_SHIFT
-        )
-        self.pcf.write(byte | self.PIN_ENABLE)
-        self.pcf.write(byte)
+        high_nibble = byte >> 4
+        payload_high = HD447804BitPayload(e=1, rs=rs, rw=0, data=high_nibble)
+        self.driver.write(payload_high)
+        payload_high = HD447804BitPayload(e=0, rs=rs, rw=0, data=high_nibble)
+        self.driver.write(payload_high)
 
         # Prepare low order bits and write them
-        byte = (self.backlight << self.BACKLIGHT_SHIFT) | (
-            (cmd & 0x0F) << self.DATA_SHIFT
-        )
-        self.pcf.write(byte | self.PIN_ENABLE)
-        self.pcf.write(byte)
+        low_nibble = byte & 0x0F
+        payload_low = HD447804BitPayload(e=1, rs=rs, rw=0, data=low_nibble)
+        self.driver.write(payload_low)
+        payload_low = HD447804BitPayload(e=0, rs=rs, rw=0, data=low_nibble)
+        self.driver.write(payload_low)
 
-        utime.sleep_ms(2)  # commands need > 37us to settle
+        utime.sleep_us(50)  # data needs > 37us to settle
+
+    def _write_command(self, cmd: int):
+        """
+        Write a command to the LCD.
+
+        :param cmd: The command to write.
+        """
+        self._write_byte(cmd, mode="command")
+
+    def _write_data(self, data: int):
+        """
+        Write data to the LCD.
+
+        :param data: The data to write.
+        """
+        self._write_byte(data, mode="data")
+
+    def clear(self):
+        """
+        Clear the LCD display and move the cursor to the top left corner.
+        """
+        self._write_command(self.LCD_CLR)
+        self._write_command(self.LCD_HOME)
 
     def write_char(self, char: str):
         """
@@ -209,46 +230,6 @@ class HD44780:
                 self.write_char(text[i])
             else:
                 self.write_char(" ")
-
-    def _write_data(self, data: int):
-        """
-        Write data to the LCD.
-
-        For 4-bit interface data, only four bus lines (DB4 to DB7) are used for transfer.
-        Bus lines DB0 to DB3 are disabled. The data transfer between the HD44780 and the
-        MPU is completed after the 4-bit data has been transferred twice. As for the order
-        of data transfer, the four high order bits (for 8-bit operation, DB4 to DB7) are
-        transferred before the four low order bits (for 8-bit operation, DB0 to DB3). The
-        busy flag must be checked (one instruction) after the 4-bit data has been
-        transferred twice. Two more 4-bit operations then transfer the busy flag and
-        address counter data.
-
-        The Register Select (RS) pin selects between data and instruction registers. If
-        RS = 0, the instruction register is selected, allowing the user to send a command
-        such as Clear Display, Return Cursor to Home, etc. If RS = 1, the data register
-        is selected, allowing the user to send data to be displayed on the LCD.
-
-        :param data: The data to write.
-        """
-        # Prepare high order bits and write them
-        byte = (
-            self.PIN_RS
-            | (self.backlight << self.BACKLIGHT_SHIFT)
-            | (((data >> 4) & 0x0F) << self.DATA_SHIFT)
-        )
-        self.pcf.write(byte | self.PIN_ENABLE)
-        self.pcf.write(byte)
-
-        # Prepare low order bits and write them
-        byte = (
-            self.PIN_RS
-            | (self.backlight << self.BACKLIGHT_SHIFT)
-            | ((data & 0x0F) << self.DATA_SHIFT)
-        )
-        self.pcf.write(byte | self.PIN_ENABLE)
-        self.pcf.write(byte)
-
-        utime.sleep_us(50)  # data needs > 37us to settle
 
     def set_cursor(self, line: int, column: int):
         """
@@ -342,17 +323,3 @@ class HD44780:
         """
         self.entry_mode_set &= ~self.LCD_ENTRY_SHIFT
         self._write_command(self.entry_mode_set)
-
-    def backlight_on(self):
-        """
-        Turn on the backlight.
-        """
-        self.backlight = 1
-        self.pcf.write(self.backlight << self.BACKLIGHT_SHIFT)
-
-    def backlight_off(self):
-        """
-        Turn off the backlight.
-        """
-        self.backlight = 0
-        self.pcf.write(self.backlight << self.BACKLIGHT_SHIFT)
