@@ -67,8 +67,8 @@ class PCF8574(HD447804BitDriver, BacklightDriver):
         This does not effect the state of the HD44780 LCD controller because the
         E pin is not set.
         """
-        backlight = 1
-        self._write_byte(backlight << self.BACKLIGHT_SHIFT)
+        self.backlight = 1
+        self._write_byte(self.backlight << self.BACKLIGHT_SHIFT)
 
     def backlight_off(self):
         """
@@ -78,8 +78,8 @@ class PCF8574(HD447804BitDriver, BacklightDriver):
         This does not effect the state of the HD44780 LCD controller because the
         E pin is not set.
         """
-        backlight = 0
-        self._write_byte(backlight << self.BACKLIGHT_SHIFT)
+        self.backlight = 0
+        self._write_byte(self.backlight << self.BACKLIGHT_SHIFT)
 
     def _write_byte(self, byte: int):
         """
