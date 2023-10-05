@@ -2,6 +2,7 @@ from machine import I2C
 from hd44780_4bit_payload import HD447804BitPayload
 from hd44780_4bit_driver import HD447804BitDriver
 from backlight_driver import BacklightDriver
+import utime
 
 
 class PCF8574(HD447804BitDriver, BacklightDriver):
@@ -90,4 +91,5 @@ class PCF8574(HD447804BitDriver, BacklightDriver):
         :param byte: The byte to write to the I2C bus.
         """
         # print("Writing byte:  b'{:08b}'".format(byte & 0xFF))
+        utime.sleep_ms(1)
         self.i2c.writeto(self.address, bytes([byte & 0xFF]))
