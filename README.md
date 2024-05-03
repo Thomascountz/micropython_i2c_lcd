@@ -40,6 +40,7 @@ i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000)
 pcf = PCF8574(i2c)
 hd44780 = HD44780(pcf, num_lines=2, num_columns=16)
 lcd = LCD(hd44780, pcf)
+lcd.backlight_on()
 ```
 
 Now you can use the `lcd` object to control the LCD. For instance, to write a line of text to the display:
